@@ -1,0 +1,78 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String @id @default(uuid())
+  name     String @unique
+  password String
+  points   Int    @default(0)
+  votes    Vote[]
+}
+
+model Vote {
+  id         String         @id @default(uuid())
+  userId     String?
+  User       User?          @relation(fields: [userId], references: [id])
+  match      Match          @relation(fields: [matchId], references: [id])
+  matchId    String
+  result     PossibleResult
+  country1   Country        @relation(fields: [country1Id], references: [id], name: "country1-v")
+  country1Id String
+  country2   Country        @relation(fields: [country2Id], references: [id], name: "country2-v")
+  country2Id String
+}
+
+enum PossibleResult {
+  WIN_C_1
+  DRAW
+  WIN_C_2
+}
+
+enum Group {
+  A
+  B
+  C
+  D
+  E
+  F
+  G
+  H
+}
+
+model Match {
+  id         String   @id
+  group      Group?
+  country1Id String?
+  country1   Country? @relation(fields: [country1Id], references: [id], name: "country1-m")
+  country2Id String?
+  country2   Country? @relation(fields: [country2Id], references: [id], name: "country2-m")
+  votes      Vote[]
+  result    Result?
+}
+
+model Result {
+  id      String         @id @default(uuid())
+  match   Match          @relation(fields: [matchId], references: [id])
+  matchId String         @unique()
+  result  PossibleResult
+}
+
+model Country {
+  id              String  @id @default(uuid())
+  name            String  @unique()
+  flagCode        String
+  group           Group
+  VotesCountry1   Vote[]  @relation("country1-v")
+  VotesCountry2   Vote[]  @relation("country2-v")
+  MatchesCountry1 Match[] @relation("country1-m")
+  MatchesCountry2 Match[] @relation("country2-m")
+}
