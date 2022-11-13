@@ -1,5 +1,6 @@
 import Head from 'next/head'
 import { FC, ReactNode } from 'react'
+import { NavBar } from './NavBar'
 
 export const Layout: FC<{children: ReactNode}> = ({children}) => {
   return (
@@ -12,6 +13,9 @@ export const Layout: FC<{children: ReactNode}> = ({children}) => {
             />
             <link rel="icon" href="/favicon.ico" />
         </Head>
+        <header>
+          <NavBar/>
+        </header>
 
         <main className="m-0 flex min-h-screen w-full flex-col items-center justify-center bg-slate-700 p-4">
             {children}

@@ -3,16 +3,18 @@ import Image from "next/image";
 import { Dispatch, FC, SetStateAction, useEffect, useState } from "react";
 import { MatchWithCountry } from "../pages/prode";
 
-interface Props {
+type Props = {
   match: MatchWithCountry;
   votes: Record<string, Omit<Vote, "userId" | "id">>;
   setVotes: Dispatch<
     SetStateAction<Record<string, Omit<Vote, "userId" | "id">>>
   >;
   setPoints: Dispatch<SetStateAction<Record<string, number>>>;
+  readonly?: boolean;
+  result?: PossibleResult;
 }
 
-const pointsToSum: Record<PossibleResult, [number, number]> = {
+export const pointsToSum: Record<PossibleResult, [number, number]> = {
   WIN_C_1: [3, 0],
   DRAW: [1, 1],
   WIN_C_2: [0, 3],
@@ -23,6 +25,8 @@ export const CurrentMatch: FC<Props> = ({
   votes,
   setVotes,
   setPoints,
+  readonly = false,
+  result
 }) => {
   const [prediction, setPrediction] = useState<PossibleResult | null>();
 
@@ -77,33 +81,33 @@ export const CurrentMatch: FC<Props> = ({
         </div>
         <div className="flex items-center">
           <div
-            className={`flex h-8 w-8 md:h-20  md:w-20 text-[8px] md:text-lg cursor-pointer items-center justify-center rounded-full border border-gray-300 ${
-              prediction === "WIN_C_1"
-                ? "bg-gray-300 text-slate-700"
-                : "text-gray-300 hover:bg-black hover:bg-opacity-10"
+            className={`flex h-8 w-8 md:h-20  md:w-20 text-[8px] md:text-lg cursor-pointer items-center justify-center rounded-full border border-gray-300 text-gray-300 ${
+              (result || prediction) === "WIN_C_1"
+                ? "shadow-[inset_13rem_0_0_0] shadow-blue-500"
+                : "hover:bg-black hover:bg-opacity-10"
             } mx-5 text-center`}
-            onClick={() => castPrediction("WIN_C_1")}
+            onClick={() => readonly || castPrediction("WIN_C_1")}
           >
             {match.country1!.name}
             <br /> WIN
           </div>
           <div
-            className={`flex h-8 w-8 md:h-20  md:w-20 text-[8px] md:text-lg  cursor-pointer items-center justify-center rounded-full border border-gray-300 ${
-              prediction === "DRAW"
-                ? "bg-gray-300 text-slate-700"
-                : "text-gray-300 hover:bg-black hover:bg-opacity-10"
+            className={`flex h-8 w-8 md:h-20  md:w-20 text-[8px] md:text-lg  cursor-pointer items-center justify-center rounded-full border border-gray-300 text-gray-300 ${
+              (result || prediction) === "DRAW"
+                ? "shadow-[inset_13rem_0_0_0] shadow-blue-500"
+                : "hover:bg-black hover:bg-opacity-10"
             } mx-5 text-center`}
-            onClick={() => castPrediction("DRAW")}
+            onClick={() => readonly || castPrediction("DRAW")}
           >
             DRAW
           </div>
           <div
-            className={`flex h-8 w-8 md:h-20  md:w-20 text-[8px] md:text-lg  cursor-pointer items-center justify-center rounded-full border border-gray-300 ${
-              prediction === "WIN_C_2"
-                ? "bg-gray-300 text-slate-700"
-                : "text-gray-300 hover:bg-black hover:bg-opacity-10"
+            className={`flex h-8 w-8 md:h-20  md:w-20 text-[8px] md:text-lg  cursor-pointer items-center justify-center rounded-full border border-gray-300 text-gray-300 ${
+              (result || prediction) === "WIN_C_2"
+                ? "shadow-[inset_13rem_0_0_0] shadow-blue-500"
+                : "hover:bg-black hover:bg-opacity-10"
             } mx-5 text-center`}
-            onClick={() => castPrediction("WIN_C_2")}
+            onClick={() => readonly || castPrediction("WIN_C_2")}
           >
             {match.country2!.name}
             <br /> WIN

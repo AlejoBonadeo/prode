@@ -1,13 +1,13 @@
-import { Layout } from "../components/Layout";
+import { useEffect, useState } from "react";
 import { GetServerSideProps, NextPage } from "next";
-import { prisma } from "../server/db/client";
-import { verifyUserToken } from "../utils/jwt";
-import { Country, Group, Match, User, Vote } from "@prisma/client";
 import Image from "next/image";
-import { useCallback, useState } from "react";
-import { CurrentMatch } from "../components/CurrentMatch";
-import { Tiebreak } from "../components/Tiebreak";
-import { trpc } from "../utils/trpc";
+import { Country, Group, Match, User, Vote } from "@prisma/client";
+import { prisma } from "../../server/db/client";
+import { verifyUserToken } from "../../utils/jwt";
+import { trpc } from "../../utils/trpc";
+import { Layout } from "../../components/Layout";
+import { CurrentMatch } from "../../components/CurrentMatch";
+import { useRouter } from "next/router";
 
 export type MatchWithCountry = Match & {
   country1: Country | null;
@@ -31,44 +31,22 @@ const Prode: NextPage<Props> = (props) => {
   >({});
   const [selected, setSelected] = useState<MatchWithCountry>();
 
-  const [tiebreakCountries, setTiebreakCountries] = useState<Country[]>([]);
+  const { mutate, data, isError, isLoading } = trpc.votes.castVotes.useMutation();
 
-  const { mutate, data, error } = trpc.votes.castVotes.useMutation()
+  const router = useRouter();
 
-  const checkForRepeats = useCallback(
-    (group: Group): Country[] | null => {
-      if (props.matchesByGroup[group].some((match) => !votes[match.id])) {
-        return null;
-      }
-
-      const groupCountries = props.countriesByGroup[group];
-      const hash = new Map<number, Country[]>();
-      for (const country of groupCountries) {
-        hash.set(points[country.name]!, [
-          ...(hash.get(points[country.name]!) || []),
-          country,
-        ]);
-      }
-      let returnType: Country[] | null = null;
-      hash.forEach((value, key) => {
-        if (value.length > 1) {
-          let larger = 0;
-          hash.forEach((_, key2) => {
-            if (key2 > key) larger++;
-          });
-          if (larger < 2) {
-            returnType = value;
-          }
-        }
-      });
-      return returnType;
-    },
-    [props.countriesByGroup, points, votes]
-  );
+  useEffect(() => {
+    if (data?.count) {
+      router.push("/leaderboard");
+    }
+    if (isError) {
+      alert("Ocurrio un error D:");
+    }
+  }, [data, isError]);
 
   return (
     <Layout>
-      {selected && !tiebreakCountries.length && (
+      {selected && (
         <CurrentMatch
           match={selected}
           setPoints={setPoints}
@@ -76,16 +54,7 @@ const Prode: NextPage<Props> = (props) => {
           votes={votes}
         />
       )}
-      {!!tiebreakCountries.length && (
-        <Tiebreak
-          countries={tiebreakCountries}
-          setPoints={setPoints}
-          setTiebreakCountries={setTiebreakCountries}
-        />
-      )
-
-      }
-      <div className="grid w-full md:grid-cols-4 gap-2 sm:grid-cols-1">
+      <div className="grid w-full gap-2 sm:grid-cols-1 md:grid-cols-4">
         {Object.keys(props.countriesByGroup).map((group) => (
           <div
             className="rounded-md border border-solid border-white p-3 text-gray-300"
@@ -93,16 +62,6 @@ const Prode: NextPage<Props> = (props) => {
           >
             <div className="flex items-center justify-between">
               <h6 className="mb-5 px-2">Grupo {group}</h6>
-              {checkForRepeats(group as Group) && (
-                <button
-                  className="relative bottom-1 left-1 rounded-md border border-gray-600 bg-gray-700 px-4 py-2 text-xs text-gray-300 transition-[color,box-shadow] duration-[400ms,700ms] hover:text-gray-300 hover:shadow-[inset_13rem_0_0_0] hover:shadow-blue-500"
-                  onClick={() =>
-                    setTiebreakCountries(checkForRepeats(group as Group)!)
-                  }
-                >
-                  Desempatar
-                </button>
-              )}
             </div>
             {props.countriesByGroup[group as Group]
               .sort((c1, c2) => points[c2.name]! - points[c1.name]!)
@@ -156,15 +115,15 @@ const Prode: NextPage<Props> = (props) => {
           </div>
         ))}
       </div>
-      {Object.keys(votes).length >= 48 && (
+      {Object.keys(votes).length == 48 && (
         <button
-        className="rounded-md border border-gray-600 bg-gray-700 px-4 py-2 mt-4 text-xl text-gray-300 transition-[color,box-shadow] duration-[400ms,700ms] hover:text-gray-300 hover:shadow-[inset_13rem_0_0_0] hover:shadow-blue-500"
-        onClick={() => mutate(Object.values(votes))}
-      >
-        Confirmar Resultados
-      </button>
-      )
-      }
+          className="mt-4 rounded-md border border-gray-600 bg-gray-700 px-4 py-2 text-xl text-gray-300 transition-[color,box-shadow] duration-[400ms,700ms] hover:text-gray-300 hover:shadow-[inset_13rem_0_0_0] hover:shadow-blue-500"
+          onClick={() => mutate(Object.values(votes))}
+          disabled={isLoading || !!data?.count}
+        >
+          {isLoading ? "Cargando..." : "Confirmar Resultados"}
+        </button>
+      )}
     </Layout>
   );
 };
@@ -184,6 +143,17 @@ export const getServerSideProps: GetServerSideProps = async ({ req }) => {
     where: { userId: user.id },
   });
 
+  console.log(user)
+
+  if(votes.length >= 48) {
+    return {
+      redirect: {
+        destination: '/leaderboard',
+        permanent: false,
+      }
+    }
+  }
+
   const matches = await prisma.match.findMany({
     orderBy: {
       group: "asc",
@@ -194,23 +164,16 @@ export const getServerSideProps: GetServerSideProps = async ({ req }) => {
     },
   });
 
-  const matchesByGroup = matches.reduce((prev, match) => {
-    if (match.group) {
-      return {
-        ...prev,
-        [match.group]: [...(prev[match.group] || []), match],
-      };
-    }
-    return {
+  const matchesByGroup = matches.reduce(
+    (prev, match) => ({
       ...prev,
-      K: [...(prev.K || []), match],
-    };
-  }, {} as Record<Group | "K", MatchWithCountry[]>);
+      [match.group || "K"]: [...(prev[match.group || "K"] || []), match],
+    }),
+    {} as Record<Group | "K", MatchWithCountry[]>
+  );
 
   const countries = await prisma.country.findMany({
-    orderBy: {
-      group: "asc",
-    },
+    orderBy: { group: "asc" },
   });
   const countriesByGroup = countries.reduce((prev, country) => {
     return {

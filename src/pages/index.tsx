@@ -1,17 +1,20 @@
-import type { NextPage } from "next";
-import Head from "next/head";
+import type { NextPage, GetServerSideProps } from "next";
 import { FormEventHandler, useEffect, useState } from "react";
 import { trpc } from "../utils/trpc";
 import Cookies from "js-cookie";
+import { verifyUserToken } from "../utils/jwt";
+import { useRouter } from "next/router";
+import { Layout } from "../components/Layout";
 
 const Home: NextPage = () => {
   const { mutate, data, isLoading, isError } = trpc.auth.login.useMutation({});
 
-  const [form, setForm] = useState({ name: "", password: "" });
+  const [form, setForm] = useState({ name: "", password: "", });
   const router = useRouter();
 
   const handleSubmit: FormEventHandler = async (e) => {
     e.preventDefault();
+    console.log(form);
     if (Object.values(form).some((v) => !v)) return;
     mutate(form);
   };
@@ -22,9 +25,18 @@ const Home: NextPage = () => {
       expiringDate.setFullYear(2023);
       console.log(expiringDate);
       Cookies.set("token", data.token, { expires: expiringDate });
+      Cookies.set("name", data.user.name, { expires: expiringDate})
       router.push("/prode");
     }
   }, [data?.token]);
+
+  useEffect(() => {
+    setForm({
+      name: (document.getElementById("name")! as HTMLInputElement).value || "",
+      password:
+        (document.getElementById("password")! as HTMLInputElement).value || "",
+    });
+  }, []);
 
   return (
     <Layout>
@@ -39,7 +51,7 @@ const Home: NextPage = () => {
       >
         <div className="mb-6">
           <label
-            htmlFor="email"
+            htmlFor="name"
             className="mb-2 block text-left text-sm font-medium text-gray-300"
           >
             Nombre
@@ -47,7 +59,7 @@ const Home: NextPage = () => {
           <input
             type="text"
             id="name"
-            className="block w-full rounded-lg border border-gray-600 bg-gray-700 p-2.5 text-sm text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 dark:focus:border-blue-500 dark:focus:ring-blue-500"
+            className="block w-full rounded-lg border border-gray-600 bg-gray-700 p-2.5 text-sm text-white placeholder-gray-200 focus:border-blue-500 focus:ring-blue-500 dark:focus:border-blue-500 dark:focus:ring-blue-500"
             placeholder="Joaquin Eduard Girod"
             autoComplete="off"
             value={form.name}
@@ -71,7 +83,7 @@ const Home: NextPage = () => {
               isError ? "border-red-500" : "border-gray-600"
             }  bg-gray-700 p-2.5 text-sm ${
               isError ? "text-red-500" : "text-gray-300"
-            } placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 dark:focus:border-blue-500 dark:focus:ring-blue-500`}
+            } placeholder-gray-200 focus:border-blue-500 focus:ring-blue-500 dark:focus:border-blue-500 dark:focus:ring-blue-500`}
             placeholder="•••••••••"
             autoComplete="off"
             value={form.password}
@@ -84,7 +96,7 @@ const Home: NextPage = () => {
           type="submit"
           disabled={isLoading}
         >
-          Ingresar
+          {isLoading ? "Cargando..." : "Ingresar"}
         </button>
       </form>
     </Layout>
@@ -93,17 +105,11 @@ const Home: NextPage = () => {
 
 export default Home;
 
-// You should use getServerSideProps when:
-// - Only if you need to pre-render a page whose data must be fetched at request time
-import { GetServerSideProps } from "next";
-import { verifyUserToken } from "../utils/jwt";
-import { useRouter } from "next/router";
-import { Layout } from "../components/Layout";
-
 export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   const { token = "" } = req.cookies;
 
   const user = await verifyUserToken(token);
+  console.log({user})
 
   if (user) {
     return {
