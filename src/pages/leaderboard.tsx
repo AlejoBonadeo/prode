@@ -12,10 +12,9 @@ const Leaderboard = () => {
       <h1 className="text-4xl font-bold text-gray-300">Leaderboard</h1>
       <div className="mt-2 w-4/5 rounded-lg border border-gray-300">
         {users?.map((user, i) => (
-          <Link href={`/prode/${user.name}`} passHref prefetch={true}>
+          <Link href={`/prode/${user.name}`} passHref prefetch={true} key={user.id}>
             <a
               className="flex cursor-pointer items-center justify-between border-b border-gray-300 px-10 py-2 text-gray-300 transition-all hover:bg-black hover:bg-opacity-10"
-              key={user.id}
             >
               <p>
                 {i + 1}. {user.name}

@@ -31,8 +31,8 @@ const UserProde: NextPage<Props> = (props) => {
           readonly
           match={selected}
           votes={{}}
-          setPoints={() => {}}
-          setVotes={() => {}}
+          setPoints={() => {console.log('')}}
+          setVotes={() => {console.log('')}}
           result={props.votes.find((v) => v.matchId === selected.id)?.result}
         />
       )}
