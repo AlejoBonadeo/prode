@@ -8,9 +8,14 @@ export default async function seed(
   res: NextApiResponse<Data>
 ) {
   if (process.env.NODE_ENV !== "development") return res.status(404).end();
-  await prisma.user.deleteMany({});
-  // await prisma.country.createMany({ data: req.body.countries });
-  // await prisma.match.createMany({ data: req.body.matches });
 
-  res.status(200).json({ ok: true });
+  await prisma.user.updateMany({
+    data: {
+      points: {
+        divide: 2
+      }
+    }
+  })
+
+  res.status(200).json({ ok: "MESSI" });
 }
